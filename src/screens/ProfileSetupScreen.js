@@ -10,17 +10,21 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { colors } from '../theme/colors';
 import { typography, spacing, radius } from '../theme/typography';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { supabase } from '../utils/supabase';
 
 export default function ProfileSetupScreen({ navigation }) {
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [gender, setGender] = useState(''); // 'male' | 'female' | 'other'
   const [conditions, setConditions] = useState([]); // array of health states
+  const [saving, setSaving] = useState(false);
 
   const CONDITION_LIST = [
     { id: 'asthma', label: 'Asthma', icon: 'wind' },
@@ -43,12 +47,41 @@ export default function ProfileSetupScreen({ navigation }) {
     setConditions(newList);
   };
 
-  const handleComplete = () => {
-    // Direct path into the dashboard!
-    navigation.replace('Home');
+  const handleComplete = async () => {
+    if (saving) return;
+
+    setSaving(true);
+    try {
+      // Fetch currently authenticated user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        throw new Error('Authentication identity not resolved.');
+      }
+
+      // Secure server-side Profile UPSERT
+      const { error: dbErr } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          name: name.trim(),
+          age: parseInt(age) || null,
+          gender: gender,
+          conditions: conditions,
+        });
+
+      if (dbErr) throw dbErr;
+
+      // Launch dashboard after locking safe session state
+      navigation.replace('Home');
+    } catch (err) {
+      Alert.alert('Saving Failed', err.message || 'Failed to configure profile on the secure cloud.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const isComplete = name && age && gender && conditions.length > 0;
+  const isComplete = name && age && gender && conditions.length > 0 && !saving;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -134,7 +167,7 @@ export default function ProfileSetupScreen({ navigation }) {
             <View style={[styles.inputGroup, { marginTop: 8 }]}>
               <Text style={styles.label}>Any breathing troubles?</Text>
               <Text style={styles.inputTip}>Choose any that apply to help us protect you better.</Text>
-              
+
               <View style={styles.chipContainer}>
                 {CONDITION_LIST.map((item) => {
                   const isActive = conditions.includes(item.id);
@@ -172,20 +205,23 @@ export default function ProfileSetupScreen({ navigation }) {
           {/* Bottom Call to Action */}
           <View style={styles.footer}>
             <TouchableOpacity
-              style={[
-                styles.submitBtn,
-                !isComplete && styles.submitBtnDisabled
-              ]}
+              style={styles.submitBtn}
               onPress={handleComplete}
               activeOpacity={0.85}
-              disabled={!isComplete}
+              disabled={!isComplete || saving}
             >
               <LinearGradient
                 colors={isComplete ? [colors.primaryLight, colors.primary] : ['#D1D5C5', '#BFC3B2']}
                 style={styles.btnGradient}
               >
-                <Text style={styles.submitBtnText}>Let's Go!</Text>
-                <Feather name="check-circle" size={20} color="#fff" style={{ marginLeft: 8 }} />
+                {saving ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <>
+                    <Text style={styles.submitBtnText}>Let's Go!</Text>
+                    <Feather name="check-circle" size={20} color="#fff" style={{ marginLeft: 8 }} />
+                  </>
+                )}
               </LinearGradient>
             </TouchableOpacity>
           </View>

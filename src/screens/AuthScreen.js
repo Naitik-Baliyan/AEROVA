@@ -15,10 +15,12 @@ import {
   Dimensions,
   ActivityIndicator,
   Image,
+  Alert,
 } from 'react-native';
 import { colors } from '../theme/colors';
 import { typography, spacing, radius } from '../theme/typography';
 import AnimatedLeaf from '../components/AnimatedLeaf';
+import { supabase } from '../utils/supabase';
 
 const { width, height } = Dimensions.get('window');
 
@@ -157,13 +159,84 @@ export default function AuthScreen({ navigation }) {
     })
   ).current;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    const trimmedEmail = email.trim();
+    const trimmedPass = password.trim();
+
+    if (!trimmedEmail || !trimmedPass) {
+      Alert.alert('Validation Error', 'Please fill out all credentials.');
+      return;
+    }
+
+    if (!isLogin && !name.trim()) {
+      Alert.alert('Validation Error', 'Please provide your name to setup the cloud profile.');
+      return;
+    }
+
+    if (!isLogin && password !== confirmPassword) {
+      Alert.alert('Validation Error', 'Passwords do not match!');
+      return;
+    }
+
     setLoading(true);
-    setTimeout(() => {
+
+    try {
+      if (isLogin) {
+        // 🔐 Real Supabase Authentication Login
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: trimmedEmail,
+          password: trimmedPass,
+        });
+
+        if (error) throw error;
+
+        if (data?.user) {
+          // Instantly check if a completed medical profile exists for routing
+          const { data: existingProfile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('id', data.user.id)
+            .maybeSingle();
+
+          if (existingProfile) {
+            // Verified returning user: Direct to Premium Dashboard
+            navigation.replace('Home');
+          } else {
+            // Fresh returning user: Direct to Setup wizard
+            navigation.replace('Onboarding');
+          }
+        }
+      } else {
+        // 🆕 Real Supabase Cloud Sign Up
+        const { data, error } = await supabase.auth.signUp({
+          email: trimmedEmail,
+          password: trimmedPass,
+          options: {
+            data: {
+              full_name: name.trim(),
+            },
+          },
+        });
+
+        if (error) throw error;
+
+        // Detect auto-session state or force confirmation notice
+        if (data?.session) {
+          Alert.alert('Success', 'Your secure AEROVA account was successfully created!');
+          navigation.replace('Onboarding');
+        } else if (data?.user) {
+          Alert.alert(
+            'Verify Email',
+            'We have sent a secure verification email. Please confirm to unlock access!',
+            [{ text: 'OK', onPress: () => switchMode('login') }]
+          );
+        }
+      }
+    } catch (err) {
+      Alert.alert('Authentication Failed', err.message || 'A connection failure occurred.');
+    } finally {
       setLoading(false);
-      navigation.replace('Onboarding');
-    }, 1000);
-    // Wire to Supabase auth later
+    }
   };
 
   return (
