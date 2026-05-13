@@ -20,7 +20,8 @@
         "foregroundImage": "./assets/images/LOGO_REFINED.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.anonymous.AEROVA"
     },
     "web": {
       "favicon": "./assets/LOGO.jpeg"

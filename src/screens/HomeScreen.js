@@ -309,6 +309,7 @@ export default function HomeScreen({ navigation }) {
         <ScrollView style={styles.drawerMenuWrapper}>
           {[
             { name: 'My Profile', icon: 'account-outline', route: 'Profile' },
+            { name: 'BreatheNow Sanctuary', icon: 'spa', route: 'Breathe' },
             { name: 'Health Shield Info', icon: 'shield-check-outline' },
             { name: 'Notifications', icon: 'bell-outline' },
             { name: 'Historical Analytics', icon: 'chart-timeline-variant' },
@@ -464,6 +465,33 @@ export default function HomeScreen({ navigation }) {
               )}
             </LinearGradient>
           </View>
+
+          {/* 🧘 THE BREATHENOW SANCTUARY GATEWAY BANNER (Premium Full-Width Discovery) */}
+          <TouchableOpacity 
+            style={styles.sanctuaryBanner}
+            activeOpacity={0.9}
+            onPress={() => navigation.replace('Breathe')}
+          >
+            <LinearGradient
+              colors={['#F4FAF4', '#E9F5E8']}
+              start={{x:0, y:0}}
+              end={{x:1, y:0}}
+              style={styles.sanctuaryGrad}
+            >
+              <View style={styles.sanctuaryLeft}>
+                <View style={styles.sanctuaryIconCirc}>
+                  <MaterialCommunityIcons name="spa" size={20} color={colors.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.sanctuaryTitle}>BreatheNow Sanctuary</Text>
+                  <Text style={styles.sanctuarySubtitle}>Relieve airway tension with deep Pranayama.</Text>
+                </View>
+              </View>
+              <View style={styles.sanctuaryArrow}>
+                <Feather name="chevron-right" size={18} color={colors.primary} />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
 
           {/* 📊 SUB-DETAILS REVEAL SECTION (Clean & Secondary, below first page view) */}
           <View style={styles.revealIndicatorRow}>
@@ -908,5 +936,62 @@ const styles = StyleSheet.create({
     fontSize: typography.sm,
     fontWeight: typography.bold,
     color: '#1E2D24',
+  },
+  sanctuaryBanner: {
+    width: '100%',
+    marginTop: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#DFEADF',
+    overflow: 'hidden',
+    shadowColor: '#2D5A27',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  sanctuaryGrad: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
+  sanctuaryLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sanctuaryIconCirc: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  sanctuaryTitle: {
+    fontSize: 14,
+    fontWeight: typography.extrabold,
+    color: '#223C27',
+    letterSpacing: -0.2,
+  },
+  sanctuarySubtitle: {
+    fontSize: 11,
+    fontWeight: typography.bold,
+    color: '#6E8774',
+    marginTop: 2,
+  },
+  sanctuaryArrow: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
