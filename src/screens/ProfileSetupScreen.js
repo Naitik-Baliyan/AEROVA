@@ -44,9 +44,8 @@ export default function ProfileSetupScreen({ navigation }) {
   };
 
   const handleComplete = () => {
-    // Logic to save user data
-    alert('Profile secured! Ready to visualize your local air dashboard.');
-    // navigation.replace('Home');
+    // Direct path into the dashboard!
+    navigation.replace('Home');
   };
 
   const isComplete = name && age && gender && conditions.length > 0;
@@ -65,7 +64,7 @@ export default function ProfileSetupScreen({ navigation }) {
           {/* Top Header - Just Logo as requested */}
           <View style={styles.header}>
             <Image
-              source={require('../../assets/LOGO.jpeg')}
+              source={require('../../assets/images/LOGO_REFINED.png')}
               style={styles.logoImage}
               resizeMode="contain"
             />

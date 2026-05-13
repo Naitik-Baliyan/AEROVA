@@ -2,9 +2,11 @@ import React from 'react';
 import { View, Platform, StyleSheet, useWindowDimensions } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import SplashScreen from './src/screens/SplashScreen';
 import AuthScreen from './src/screens/AuthScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import ProfileSetupScreen from './src/screens/ProfileSetupScreen';
+import HomeScreen from './src/screens/HomeScreen';
 import { StatusBar } from 'expo-status-bar';
 
 const Stack = createNativeStackNavigator();
@@ -19,9 +21,11 @@ export default function App() {
     <NavigationContainer>
       <StatusBar style="auto" />
       <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
+        <Stack.Screen name="Splash" component={SplashScreen} />
         <Stack.Screen name="Auth" component={AuthScreen} />
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
+        <Stack.Screen name="Home" component={HomeScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
