@@ -44,6 +44,14 @@ export default function HomeScreen({ navigation }) {
   const slideAnim = useRef(new Animated.Value(-drawerWidth)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    if (hour < 22) return 'Good Evening';
+    return 'Rest Well';
+  };
+
   useEffect(() => {
     fetchUserProfile();
     fetchLiveAirQuality();
@@ -117,21 +125,38 @@ export default function HomeScreen({ navigation }) {
 
       setLocationCity(cityName);
 
-      // 3. Fetch real-time open telemetry air conditions (Zero-Key Needed!)
+      // 3. Fetch real-time physical station air conditions via WAQI (Highest Accuracy!)
+      const waqiToken = '7c6109ecae314dcf3fc77e6d115d468af393772e';
       const apiRes = await fetch(
-        `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi,pm2_5,pm10,nitrogen_dioxide,ozone`
+        `https://api.waqi.info/feed/geo:${lat};${lon}/?token=${waqiToken}`
       );
-      const airData = await apiRes.json();
+      const result = await apiRes.json();
 
-      if (airData?.current) {
-        const newAqi = Math.round(airData.current.us_aqi) || 35;
+      if (result?.status === 'ok' && result.data) {
+        const data = result.data;
+        const newAqi = Math.round(data.aqi) || 35;
         setAqi(newAqi);
+        
+        // Safely extract individual raw pollutant values from ground sensor telemetry
+        const rawPm25 = data.iaqi?.pm25?.v ?? 12;
+        const rawPm10 = data.iaqi?.pm10?.v ?? 25;
+        const rawNo2 = data.iaqi?.no2?.v ?? 15;
+        const rawO3 = data.iaqi?.o3?.v ?? 22;
+
         setPollutants({
-          pm25: Math.round(airData.current.pm2_5) || 12,
-          pm10: Math.round(airData.current.pm10) || 25,
-          no2: Math.round(airData.current.nitrogen_dioxide) || 15,
-          o3: Math.round(airData.current.ozone) || 22,
+          pm25: Math.round(rawPm25),
+          pm10: Math.round(rawPm10),
+          no2: Math.round(rawNo2),
+          o3: Math.round(rawO3),
         });
+
+        // If native location name failed, fallback to the exact government station name
+        if (!cityName || cityName.includes('Default')) {
+          if (data.city?.name) {
+            const cleanStationName = data.city.name.split(',')[0];
+            setLocationCity(cleanStationName);
+          }
+        }
 
         // ⚡ Trigger highly premium vector dial filling micro-animation!
         animatedAqi.setValue(0);
@@ -310,10 +335,10 @@ export default function HomeScreen({ navigation }) {
           {[
             { name: 'My Profile', icon: 'account-outline', route: 'Profile' },
             { name: 'BreatheNow Sanctuary', icon: 'spa', route: 'Breathe' },
-            { name: 'Health Shield Info', icon: 'shield-check-outline' },
+            { name: 'Health Shield Info', icon: 'shield-check-outline', route: 'Profile' },
             { name: 'Notifications', icon: 'bell-outline' },
             { name: 'Historical Analytics', icon: 'chart-timeline-variant' },
-            { name: 'App Settings', icon: 'cog-outline' },
+            { name: 'App Settings', icon: 'cog-outline', route: 'Profile' },
           ].map((item, idx) => (
             <TouchableOpacity 
               key={idx} 
@@ -321,7 +346,7 @@ export default function HomeScreen({ navigation }) {
               onPress={() => {
                 if (item.route) {
                   toggleDrawer(false);
-                  navigation.replace(item.route);
+                  navigation.navigate(item.route);
                 }
               }}
             >
@@ -344,6 +369,7 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.logoutText}>Log Out</Text>
           </TouchableOpacity>
           <Text style={styles.versionText}>v1.0.0 Premium</Text>
+          <Text style={styles.signatureText}>Designed & Engineered by Naitik ✨</Text>
         </View>
       </Animated.View>
 
@@ -377,7 +403,7 @@ export default function HomeScreen({ navigation }) {
               {loadingProfile ? (
                 <ActivityIndicator size="small" color={colors.primary} style={{ alignSelf: 'flex-start', marginTop: 8 }} />
               ) : (
-                <Text style={styles.welcomeTitle}>Good Morning, {userName}</Text>
+                <Text style={styles.welcomeTitle}>{getGreeting()}, {userName}</Text>
               )}
             </View>
           </View>
@@ -654,7 +680,15 @@ const styles = StyleSheet.create({
   },
   versionText: {
     fontSize: typography.xs,
+    fontWeight: typography.medium,
     color: '#A8B3AA',
+  },
+  signatureText: {
+    fontSize: 12,
+    fontWeight: typography.semibold,
+    color: '#718A78',
+    marginTop: 6,
+    letterSpacing: 0.3,
   },
   whiteCanvas: {
     ...StyleSheet.absoluteFillObject,

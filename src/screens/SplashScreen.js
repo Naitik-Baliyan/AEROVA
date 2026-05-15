@@ -41,7 +41,7 @@ export default function SplashScreen({ navigation }) {
         ]}
       >
         <Image
-          source={require('../../assets/images/LOGO_REFINED.png')}
+          source={require('../../assets/images/logo_refined.png')}
           style={styles.logo}
           resizeMode="contain"
         />

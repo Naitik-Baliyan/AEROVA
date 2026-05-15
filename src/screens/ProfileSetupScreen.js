@@ -97,7 +97,7 @@ export default function ProfileSetupScreen({ navigation }) {
           {/* Top Header - Just Logo as requested */}
           <View style={styles.header}>
             <Image
-              source={require('../../assets/images/LOGO_REFINED.png')}
+              source={require('../../assets/images/logo_refined.png')}
               style={styles.logoImage}
               resizeMode="contain"
             />

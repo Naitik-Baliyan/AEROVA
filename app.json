@@ -4,11 +4,11 @@
     "slug": "AEROVA",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/LOGO_REFINED.png",
+    "icon": "./assets/images/app_launcher_icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/LOGO_REFINED.png",
+      "image": "./assets/images/logo_refined.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -17,14 +17,20 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/LOGO_REFINED.png",
+        "foregroundImage": "./assets/images/app_launcher_icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.anonymous.AEROVA"
+      "package": "com.naitik.aerova"
     },
     "web": {
-      "favicon": "./assets/LOGO.jpeg"
-    }
+      "favicon": "./assets/images/app_launcher_icon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "3b1e50cd-6b95-4a83-ab13-397632344b35"
+      }
+    },
+    "owner": "naitikbaliyan"
   }
 }
