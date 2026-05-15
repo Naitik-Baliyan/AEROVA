@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Image, Animated } from 'react-native';
 import { colors } from '../theme/colors';
+import { supabase } from '../utils/supabase';
 
 export default function SplashScreen({ navigation }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -21,12 +22,30 @@ export default function SplashScreen({ navigation }) {
       }),
     ]).start();
 
-    // Hold visual for total 2.5 seconds then slide into Auth
-    const timer = setTimeout(() => {
-      navigation.replace('Auth');
-    }, 2500);
+    // 🔐 Proactively restore persistent user session from local storage
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        // Hold visual for total 2.5 seconds to ensure premium brand impression
+        setTimeout(() => {
+          if (session && session.user) {
+            // 🚀 Found active session token! Blast straight to Home!
+            navigation.replace('Home');
+          } else {
+            // 🛑 No token found, direct to landing screen
+            navigation.replace('Auth');
+          }
+        }, 2500);
+      } catch (error) {
+        // Safety fallback to Auth
+        setTimeout(() => {
+          navigation.replace('Auth');
+        }, 2500);
+      }
+    };
 
-    return () => clearTimeout(timer);
+    checkSession();
   }, []);
 
   return (
