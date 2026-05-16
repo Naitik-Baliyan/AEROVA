@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import { supabase } from '../utils/supabase';
 import * as Location from 'expo-location';
+import { getQuickInsight } from '../utils/aiService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -43,6 +44,23 @@ export default function HomeScreen({ navigation }) {
   const drawerWidth = width * 0.75;
   const slideAnim = useRef(new Animated.Value(-drawerWidth)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
+
+  // Aero AI State
+  const [aiInsight, setAiInsight] = useState('Analyzing atmospheric telemetry...');
+  const [loadingAi, setLoadingAi] = useState(true);
+
+  // Generate Insight when data settles
+  useEffect(() => {
+    if (!loadingLocation && !loadingProfile && aqi > 0) {
+      setLoadingAi(true);
+      getQuickInsight(aqi, pollutants, userConditions)
+        .then(res => {
+          setAiInsight(res);
+          setLoadingAi(false);
+        })
+        .catch(() => setLoadingAi(false));
+    }
+  }, [aqi, pollutants, userConditions, loadingLocation, loadingProfile]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -465,31 +483,36 @@ export default function HomeScreen({ navigation }) {
               </View>
             </View>
 
-            {/* 2. THE PRIMARY SMART TIP CARD (Highly prominent as requested) */}
-            <LinearGradient
-              colors={['#FFFFFF', '#F9FDF9']}
-              style={styles.prominentTipCard}
-              start={{x:0, y:0}}
-              end={{x:1, y:1}}
+            <TouchableOpacity 
+              activeOpacity={0.9} 
+              onPress={() => navigation.navigate('AeroChat', { medicalProfile: userConditions, currentAqi: aqi })}
             >
-              <View style={styles.tipHeaderRow}>
-                <View style={styles.tipIconCirc}>
-                  <MaterialCommunityIcons 
-                    name={activeTip.icon || 'shield-check'} 
-                    size={22} 
-                    color={colors.primary} 
-                  />
+              <LinearGradient
+                colors={['#FFFFFF', '#F9FDF9']}
+                style={[styles.prominentTipCard, { borderColor: colors.primary + '30', borderWidth: 1 }]}
+                start={{x:0, y:0}}
+                end={{x:1, y:1}}
+              >
+                <View style={styles.tipHeaderRow}>
+                  <View style={styles.tipIconCirc}>
+                    <Text style={{fontSize: 16}}>🤖</Text>
+                  </View>
+                  <Text style={[styles.tipBadgeLabel, { color: colors.primary, fontWeight: '700' }]}>Aero AI Insight</Text>
+                  <View style={{ flex: 1 }} />
+                  <Feather name="chevron-right" size={18} color={colors.textMuted} />
                 </View>
-                <Text style={styles.tipBadgeLabel}>{activeTip.badge}</Text>
-              </View>
-              {loadingProfile ? (
-                <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 10 }} />
-              ) : (
-                <Text style={styles.mainTipMessage}>
-                  "{activeTip.msg}"
-                </Text>
-              )}
-            </LinearGradient>
+                {loadingAi ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
+                    <ActivityIndicator size="small" color={colors.primary} style={{ marginRight: 10 }} />
+                    <Text style={styles.mainTipMessage}>Neural processing...</Text>
+                  </View>
+                ) : (
+                  <Text style={[styles.mainTipMessage, { marginTop: 8 }]}>
+                    "{aiInsight}"
+                  </Text>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
 
           {/* 🧘 THE BREATHENOW SANCTUARY GATEWAY BANNER (Premium Full-Width Discovery) */}

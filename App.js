@@ -9,6 +9,7 @@ import ProfileSetupScreen from './src/screens/ProfileSetupScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import BreatheScreen from './src/screens/BreatheScreen';
+import AeroChatScreen from './src/screens/AeroChatScreen';
 import { StatusBar } from 'expo-status-bar';
 
 const Stack = createNativeStackNavigator();
@@ -30,6 +31,7 @@ export default function App() {
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="Breathe" component={BreatheScreen} />
+        <Stack.Screen name="AeroChat" component={AeroChatScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
