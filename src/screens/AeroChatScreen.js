@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
   messageBubble: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    maxWidth: '85%',
+    maxWidth: '90%',
   },
   userBubble: {
     alignSelf: 'flex-end',
@@ -217,6 +217,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 20,
+    flexShrink: 1,
   },
   userBubbleContent: {
     backgroundColor: colors.primary,

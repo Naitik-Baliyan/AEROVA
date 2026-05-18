@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 
 // ⚠️ Insert your Groq API Key in a .env file as EXPO_PUBLIC_GROQ_API_KEY
 const GROQ_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY;
+console.log("DEBUG: Loaded API Key length:", GROQ_API_KEY ? GROQ_API_KEY.length : 'undefined');
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 /**
@@ -49,7 +50,7 @@ export const getQuickInsight = async (aqi, pollutants, medicalProfile) => {
         'Authorization': `Bearer ${GROQ_API_KEY}`
       },
       body: JSON.stringify({
-        model: "llama3-8b-8192",
+        model: "llama-3.1-8b-instant",
         messages: [{ role: "system", content: systemPrompt }]
       })
     });
@@ -97,7 +98,7 @@ export const sendChatMessage = async (chatHistory, medicalProfile, currentAqi) =
         'Authorization': `Bearer ${GROQ_API_KEY}`
       },
       body: JSON.stringify({
-        model: "llama3-8b-8192",
+        model: "llama-3.1-8b-instant",
         messages: [
           { role: "system", content: systemInstruction },
           ...formattedHistory
