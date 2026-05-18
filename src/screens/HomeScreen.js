@@ -20,6 +20,7 @@ import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-na
 import { supabase } from '../utils/supabase';
 import * as Location from 'expo-location';
 import { getQuickInsight } from '../utils/aiService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -48,6 +49,9 @@ export default function HomeScreen({ navigation }) {
   // Aero AI State
   const [aiInsight, setAiInsight] = useState('Analyzing atmospheric telemetry...');
   const [loadingAi, setLoadingAi] = useState(true);
+
+  // Gamification State
+  const [coins, setCoins] = useState(0);
 
   // Generate Insight when data settles
   useEffect(() => {
@@ -89,7 +93,21 @@ export default function HomeScreen({ navigation }) {
         }),
       ])
     ).start();
-  }, []);
+
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchCoins();
+    });
+    fetchCoins();
+
+    return unsubscribe;
+  }, [navigation]);
+
+  const fetchCoins = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('@aero_coins');
+      setCoins(stored ? parseInt(stored, 10) : 0);
+    } catch (e) {}
+  };
 
   const fetchUserProfile = async () => {
     try {
@@ -406,8 +424,12 @@ export default function HomeScreen({ navigation }) {
               >
                 <MaterialCommunityIcons name="menu" size={26} color={colors.primary} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionBtn} activeOpacity={0.7}>
-                <Feather name="bell" size={20} color={colors.primary} />
+              <TouchableOpacity 
+                style={[styles.actionBtn, {flexDirection: 'row', paddingHorizontal: 12, backgroundColor: '#FFF2CC', borderColor: '#FFE599', borderWidth: 1, borderRadius: 20, width: 'auto'}]} 
+                activeOpacity={0.7}
+                onPress={() => navigation.navigate('Nursery')}
+              >
+                <Text style={{fontFamily: typography.bold, fontSize: 14, color: '#B38E00'}}>{coins} 🪙</Text>
               </TouchableOpacity>
             </View>
 

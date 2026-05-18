@@ -162,8 +162,33 @@ export default function BreatheScreen({ navigation }) {
       const storedCoins = await AsyncStorage.getItem('@aero_coins');
       const currentCoins = storedCoins ? parseInt(storedCoins, 10) : 0;
       await AsyncStorage.setItem('@aero_coins', (currentCoins + earned).toString());
+
+      const storedForest = await AsyncStorage.getItem('@aero_forest');
+      const forest = storedForest ? JSON.parse(storedForest) : [];
+      
+      const storedEquipped = await AsyncStorage.getItem('@aero_equipped_skin');
+      const skinId = storedEquipped || 'default';
+      
+      const STORE_ITEMS = [
+        { id: 'default', name: 'Oak Tree', emoji: '🌳' },
+        { id: 'pine', name: 'Alpine Pine', emoji: '🌲' },
+        { id: 'sakura', name: 'Zen Sakura', emoji: '🌸' },
+        { id: 'maple', name: 'Autumn Maple', emoji: '🍁' },
+        { id: 'mystic', name: 'Mystic Mushroom', emoji: '🍄' },
+      ];
+      
+      const equippedTree = STORE_ITEMS.find(i => i.id === skinId) || STORE_ITEMS[0];
+
+      forest.push({
+        id: Date.now().toString(),
+        type: equippedTree.name,
+        emoji: equippedTree.emoji,
+        duration: selectedDuration,
+        date: new Date().toISOString(),
+      });
+      await AsyncStorage.setItem('@aero_forest', JSON.stringify(forest));
     } catch (e) {
-      console.log('Error saving coins', e);
+      console.log('Error saving rewards', e);
     }
   };
 
