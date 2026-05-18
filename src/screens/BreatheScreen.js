@@ -15,7 +15,6 @@ import { colors } from '../theme/colors';
 import { typography, radius, spacing } from '../theme/typography';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
-import * as Speech from 'expo-speech';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width, height } = Dimensions.get('window');
@@ -63,8 +62,6 @@ export default function BreatheScreen({ navigation }) {
   const [timeLeft, setTimeLeft] = useState(0);
   
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const [bestVoice, setBestVoice] = useState(null);
   
   // Audio Ref
   const soundRef = useRef(null);
@@ -77,36 +74,13 @@ export default function BreatheScreen({ navigation }) {
 
   const currentPhase = selectedMode.pattern[currentPhaseIdx];
 
-  // Setup Audio and discover high-quality local voice cues on start
+  // Setup Audio on start
   useEffect(() => {
     Audio.setAudioModeAsync({
       playsInSilentModeIOS: true,
       staysActiveInBackground: false,
       shouldDuckAndroid: true,
     });
-
-    const discoverSoothingVoice = async () => {
-      try {
-        const voices = await Speech.getAvailableVoicesAsync();
-        // Filter for English
-        const englishVoices = voices.filter(v => v.language.startsWith('en'));
-        
-        // Attempt to find advanced local high-quality offline voice profiles
-        const softVoice = englishVoices.find(v => 
-          v.name.toLowerCase().includes('sfg') || 
-          v.name.toLowerCase().includes('natural') ||
-          v.name.toLowerCase().includes('enhanced')
-        ) || englishVoices[0];
-
-        if (softVoice) {
-          console.log('🏆 Sanctuary Soft Voice Engaged:', softVoice.name);
-          setBestVoice(softVoice.identifier);
-        }
-      } catch (e) {
-        console.log('Voice Scanning Defect:', e);
-      }
-    };
-    discoverSoothingVoice();
 
     return () => {
       stopSession();
@@ -154,14 +128,12 @@ export default function BreatheScreen({ navigation }) {
     const firstStep = selectedMode.pattern[0];
     setTimeLeft(firstStep.duration);
     triggerPhaseAnimation(firstStep.phase, firstStep.duration);
-    triggerVoiceCue(firstStep.cue);
     startTickTimer(0, firstStep.duration);
   };
 
   const stopSession = async () => {
     setIsActive(false);
     if (timerInterval.current) clearInterval(timerInterval.current);
-    await Speech.stop();
     
     if (soundRef.current) {
       await soundRef.current.stopAsync();
@@ -175,25 +147,6 @@ export default function BreatheScreen({ navigation }) {
       Animated.spring(circleOpacity, { toValue: 0.6, useNativeDriver: true })
     ]).start();
   };
-
-  const triggerVoiceCue = async (text) => {
-    if (!voiceEnabled) return;
-    try {
-      await Speech.stop();
-      // Allow OS audio engine queue state to fully reset
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      Speech.speak(text, {
-        language: 'en',
-        voice: bestVoice || undefined,
-        pitch: 0.80, // Deepened and warmed up to remove sharp/robotic high frequencies
-        rate: 0.72,  // Significantly slowed down for an ultra-calm yoga studio cadence
-      });
-    } catch (err) {
-      console.log('Voice Synthesis Cue Error:', err);
-    }
-  };
-
   const triggerPhaseAnimation = (phase, duration) => {
     let targetScale = 1;
     let targetOpacity = 0.6;
@@ -241,7 +194,6 @@ export default function BreatheScreen({ navigation }) {
         
         setCurrentPhaseIdx(nextPhaseIdx);
         triggerPhaseAnimation(nextPhase.phase, nextPhase.duration);
-        triggerVoiceCue(nextPhase.cue);
         
         clearInterval(timerInterval.current);
         startTickTimer(nextPhaseIdx, nextPhase.duration);
@@ -252,10 +204,6 @@ export default function BreatheScreen({ navigation }) {
   };
 
   const toggleSoundSetting = () => setSoundEnabled(!soundEnabled);
-  const toggleVoiceSetting = () => {
-    if (voiceEnabled) Speech.stop();
-    setVoiceEnabled(!voiceEnabled);
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -285,12 +233,6 @@ export default function BreatheScreen({ navigation }) {
             onPress={toggleSoundSetting}
           >
             <Feather name={soundEnabled ? "music" : "volume-x"} size={18} color="#FFF" />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.controlIconBtn, {marginLeft: 12}, !voiceEnabled && styles.disabledBtn]} 
-            onPress={toggleVoiceSetting}
-          >
-            <MaterialCommunityIcons name={voiceEnabled ? "account-voice" : "microphone-off"} size={18} color="#FFF" />
           </TouchableOpacity>
         </View>
       </View>
@@ -375,7 +317,7 @@ export default function BreatheScreen({ navigation }) {
         ) : (
           <View style={styles.activeControlsRow}>
             <Text style={styles.ritualSessionTitle}>{selectedMode.name}</Text>
-            <Text style={styles.ritualSessionStatus}>Dual Sonic Engine: Active 🔊🌿</Text>
+            <Text style={styles.ritualSessionStatus}>Sonic Engine: Active 🔊🌿</Text>
             
             <TouchableOpacity 
               style={styles.stopSessionBtn}
