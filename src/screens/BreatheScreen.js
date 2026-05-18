@@ -16,6 +16,7 @@ import { typography, radius, spacing } from '../theme/typography';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -60,6 +61,12 @@ export default function BreatheScreen({ navigation }) {
   const [isActive, setIsActive] = useState(false);
   const [currentPhaseIdx, setCurrentPhaseIdx] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
+  
+  const [selectedDuration, setSelectedDuration] = useState(1);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [showReward, setShowReward] = useState(false);
+  const [coinsEarned, setCoinsEarned] = useState(0);
+  const elapsedRef = useRef(0);
   
   const [soundEnabled, setSoundEnabled] = useState(true);
   
@@ -124,11 +131,40 @@ export default function BreatheScreen({ navigation }) {
 
   const startSession = () => {
     setIsActive(true);
+    setShowReward(false);
     setCurrentPhaseIdx(0);
+    elapsedRef.current = 0;
+    setElapsedSeconds(0);
     const firstStep = selectedMode.pattern[0];
     setTimeLeft(firstStep.duration);
     triggerPhaseAnimation(firstStep.phase, firstStep.duration);
     startTickTimer(0, firstStep.duration);
+  };
+
+  const handleSessionComplete = async () => {
+    setIsActive(false);
+    if (timerInterval.current) clearInterval(timerInterval.current);
+    if (soundRef.current) {
+      await soundRef.current.stopAsync();
+      await soundRef.current.unloadAsync();
+      soundRef.current = null;
+    }
+    Animated.parallel([
+      Animated.spring(circleScale, { toValue: 1, useNativeDriver: true }),
+      Animated.spring(circleOpacity, { toValue: 0.6, useNativeDriver: true })
+    ]).start();
+
+    const earned = selectedDuration * 50;
+    setCoinsEarned(earned);
+    setShowReward(true);
+
+    try {
+      const storedCoins = await AsyncStorage.getItem('@aero_coins');
+      const currentCoins = storedCoins ? parseInt(storedCoins, 10) : 0;
+      await AsyncStorage.setItem('@aero_coins', (currentCoins + earned).toString());
+    } catch (e) {
+      console.log('Error saving coins', e);
+    }
   };
 
   const stopSession = async () => {
@@ -186,6 +222,14 @@ export default function BreatheScreen({ navigation }) {
 
     timerInterval.current = setInterval(() => {
       localTimeLeft -= 1;
+      elapsedRef.current += 1;
+      setElapsedSeconds(elapsedRef.current);
+      
+      const totalTargetSeconds = selectedDuration * 60;
+      if (elapsedRef.current >= totalTargetSeconds) {
+         handleSessionComplete();
+         return;
+      }
       
       if (localTimeLeft <= 0) {
         // Advance to next phase
@@ -204,6 +248,29 @@ export default function BreatheScreen({ navigation }) {
   };
 
   const toggleSoundSetting = () => setSoundEnabled(!soundEnabled);
+
+  if (showReward) {
+    return (
+      <SafeAreaView style={[styles.container, {justifyContent: 'center', alignItems: 'center', backgroundColor: '#FAFCFC'}]}>
+        <Text style={{fontSize: 100, marginBottom: 20}}>🌳</Text>
+        <Text style={{fontFamily: typography.bold, fontSize: 32, color: colors.text, textAlign: 'center'}}>Sanctuary Complete!</Text>
+        <Text style={{fontFamily: typography.regular, fontSize: 16, color: colors.textMuted, textAlign: 'center', marginTop: 12, paddingHorizontal: 40}}>
+          Your lungs and your virtual tree are thriving.
+        </Text>
+        <View style={{backgroundColor: '#E6F4EA', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20, marginTop: 40, borderWidth: 1, borderColor: '#5ECF84'}}>
+          <Text style={{fontFamily: typography.bold, fontSize: 24, color: '#2D9E5A'}}>+{coinsEarned} AeroCoins</Text>
+        </View>
+        <TouchableOpacity 
+           style={[styles.actionTriggerBtn, {width: width - 80, marginTop: 60, position: 'relative'}]}
+           onPress={() => navigation.replace('Home')}
+        >
+           <LinearGradient colors={['#5ECF84', '#2D9E5A']} style={styles.gradBtnContent}>
+             <Text style={styles.actionBtnText}>Return to Dashboard</Text>
+           </LinearGradient>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -256,6 +323,11 @@ export default function BreatheScreen({ navigation }) {
           <View style={styles.orbOverlayTextPanel}>
             {isActive ? (
               <>
+                <Text style={{fontSize: 42, marginBottom: 8}}>
+                  {(elapsedSeconds / (selectedDuration * 60)) > 0.75 ? '🌳' :
+                   (elapsedSeconds / (selectedDuration * 60)) > 0.50 ? '🪴' :
+                   (elapsedSeconds / (selectedDuration * 60)) > 0.25 ? '🌿' : '🌱'}
+                </Text>
                 <Text style={styles.actionLabelText}>{currentPhase?.phase.toUpperCase()}</Text>
                 <Text style={styles.timerCounterText}>{timeLeft}</Text>
               </>
@@ -298,6 +370,19 @@ export default function BreatheScreen({ navigation }) {
                   </TouchableOpacity>
                 );
               })}
+            </View>
+
+            <Text style={[styles.panelHeaderLabel, {marginTop: 10}]}>Session Duration</Text>
+            <View style={{flexDirection: 'row', gap: 12, marginBottom: 24}}>
+              {[1, 3, 5, 10].map(min => (
+                 <TouchableOpacity 
+                    key={min}
+                    onPress={() => setSelectedDuration(min)}
+                    style={[styles.durationBtn, selectedDuration === min && styles.durationBtnActive]}
+                 >
+                    <Text style={[styles.durationTxt, selectedDuration === min && styles.durationTxtActive]}>{min} min</Text>
+                 </TouchableOpacity>
+              ))}
             </View>
 
             <TouchableOpacity 
@@ -536,5 +621,26 @@ const styles = StyleSheet.create({
     fontFamily: typography.bold,
     fontSize: 14,
     color: '#FF5252',
+  },
+  durationBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#F0F4F2',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  durationBtnActive: {
+    backgroundColor: '#E6F4EA',
+    borderColor: '#5ECF84',
+  },
+  durationTxt: {
+    fontFamily: typography.medium,
+    fontSize: 14,
+    color: colors.textMuted,
+  },
+  durationTxtActive: {
+    color: '#2D9E5A',
+    fontFamily: typography.bold,
   },
 });
