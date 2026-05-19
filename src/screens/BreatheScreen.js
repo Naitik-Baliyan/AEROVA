@@ -17,6 +17,7 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../utils/supabase';
 
 const { width, height } = Dimensions.get('window');
 
@@ -161,7 +162,8 @@ export default function BreatheScreen({ navigation }) {
     try {
       const storedCoins = await AsyncStorage.getItem('@aero_coins');
       const currentCoins = storedCoins ? parseInt(storedCoins, 10) : 0;
-      await AsyncStorage.setItem('@aero_coins', (currentCoins + earned).toString());
+      const newCoins = currentCoins + earned;
+      await AsyncStorage.setItem('@aero_coins', newCoins.toString());
 
       const storedForest = await AsyncStorage.getItem('@aero_forest');
       const forest = storedForest ? JSON.parse(storedForest) : [];
@@ -179,14 +181,28 @@ export default function BreatheScreen({ navigation }) {
       
       const equippedTree = STORE_ITEMS.find(i => i.id === skinId) || STORE_ITEMS[0];
 
-      forest.push({
+      const newTree = {
         id: Date.now().toString(),
         type: equippedTree.name,
         emoji: equippedTree.emoji,
         duration: selectedDuration,
         date: new Date().toISOString(),
-      });
+      };
+
+      forest.push(newTree);
       await AsyncStorage.setItem('@aero_forest', JSON.stringify(forest));
+
+      // Sync to Supabase cloud profile
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('profiles')
+          .update({
+            aero_coins: newCoins,
+            forest_data: forest
+          })
+          .eq('id', user.id);
+      }
     } catch (e) {
       console.log('Error saving rewards', e);
     }

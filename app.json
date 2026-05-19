@@ -31,6 +31,17 @@
         "projectId": "3b1e50cd-6b95-4a83-ab13-397632344b35"
       }
     },
-    "owner": "naitikbaliyan"
+    "owner": "naitikbaliyan",
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
+        }
+      ]
+    ]
   }
 }

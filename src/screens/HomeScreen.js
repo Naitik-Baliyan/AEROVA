@@ -105,7 +105,20 @@ export default function HomeScreen({ navigation }) {
   const fetchCoins = async () => {
     try {
       const stored = await AsyncStorage.getItem('@aero_coins');
-      setCoins(stored ? parseInt(stored, 10) : 0);
+      if (stored) setCoins(parseInt(stored, 10));
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('aero_coins')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (data) {
+          setCoins(data.aero_coins ?? 0);
+          await AsyncStorage.setItem('@aero_coins', (data.aero_coins ?? 0).toString());
+        }
+      }
     } catch (e) {}
   };
 
@@ -124,6 +137,8 @@ export default function HomeScreen({ navigation }) {
         if (data) {
           setUserName(data.name || 'User');
           setUserConditions(data.conditions || []);
+          setCoins(data.aero_coins ?? 0);
+          await AsyncStorage.setItem('@aero_coins', (data.aero_coins ?? 0).toString());
         }
       }
     } catch (err) {

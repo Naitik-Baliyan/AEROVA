@@ -24,21 +24,21 @@ const ONBOARDING_DATA = [
     id: '1',
     title: 'Breathe in Cleanliness',
     description: 'Real-time AI tracking monitors pollution across the city keeping you informed and secure.',
-    image: require('../../assets/images/onboard1.png'),
+    image: require('../../assets/images/onboard1.webp'),
     accent: '#2D5A27', // Green
   },
   {
     id: '2',
     title: 'Measure Every Breath',
     description: 'Analyze accurate AQI stats and predict conditions before stepping out into the city haze.',
-    image: require('../../assets/images/onboard2.png'),
+    image: require('../../assets/images/onboard2.webp'),
     accent: '#E67E22', // Warn Orange
   },
   {
     id: '3',
     title: 'Reclaim Your Streets',
     description: 'Personalized health safety warnings for clean pathways, so your lifestyle stays undisturbed.',
-    image: require('../../assets/images/onboard3.png'),
+    image: require('../../assets/images/onboard3.webp'),
     accent: '#2D5A27', 
   },
 ];

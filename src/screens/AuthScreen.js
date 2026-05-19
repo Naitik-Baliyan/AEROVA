@@ -213,7 +213,7 @@ export default function AuthScreen({ navigation }) {
 
       {/* ── Full-screen nature background ── */}
       <Image
-        source={require('../../assets/images/auth_bg.png')}
+        source={require('../../assets/images/auth_bg.webp')}
         style={styles.bgImage}
         resizeMode="cover"
       />

@@ -16,6 +16,7 @@ import { colors } from '../theme/colors';
 import { typography } from '../theme/typography';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
+import { supabase } from '../utils/supabase';
 
 const { width } = Dimensions.get('window');
 
@@ -40,27 +41,95 @@ export default function NurseryScreen({ navigation }) {
 
   const loadNurseryData = async () => {
     try {
+      // 1. Quick load from Cache
       const storedCoins = await AsyncStorage.getItem('@aero_coins');
-      setCoins(storedCoins ? parseInt(storedCoins, 10) : 0);
+      if (storedCoins) setCoins(parseInt(storedCoins, 10));
 
       const storedForest = await AsyncStorage.getItem('@aero_forest');
-      setForest(storedForest ? JSON.parse(storedForest) : []);
+      if (storedForest) setForest(JSON.parse(storedForest));
 
       const storedSkins = await AsyncStorage.getItem('@aero_skins');
       if (storedSkins) setUnlockedSkins(JSON.parse(storedSkins));
 
       const storedEquipped = await AsyncStorage.getItem('@aero_equipped_skin');
       if (storedEquipped) setEquippedSkin(storedEquipped);
+
+      // 2. Fetch fresh data from Supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('aero_coins, forest_data, unlocked_skins, equipped_skin')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (data) {
+          let syncedCoins = data.aero_coins ?? 0;
+          let syncedForest = data.forest_data ?? [];
+          let syncedSkins = data.unlocked_skins ?? ['default'];
+          let syncedEquipped = data.equipped_skin ?? 'default';
+
+          // Migration check: If local cache has greater coins or trees, merge/sync up once!
+          let needsCloudSync = false;
+
+          if (storedCoins && parseInt(storedCoins, 10) > syncedCoins) {
+            syncedCoins = parseInt(storedCoins, 10);
+            needsCloudSync = true;
+          }
+          if (storedForest) {
+            const parsedLocalForest = JSON.parse(storedForest);
+            if (parsedLocalForest.length > syncedForest.length) {
+              syncedForest = parsedLocalForest;
+              needsCloudSync = true;
+            }
+          }
+          if (storedSkins) {
+            const parsedLocalSkins = JSON.parse(storedSkins);
+            if (parsedLocalSkins.length > syncedSkins.length) {
+              syncedSkins = parsedLocalSkins;
+              needsCloudSync = true;
+            }
+          }
+
+          if (needsCloudSync) {
+            await supabase
+              .from('profiles')
+              .update({
+                aero_coins: syncedCoins,
+                forest_data: syncedForest,
+                unlocked_skins: syncedSkins
+              })
+              .eq('id', user.id);
+          }
+
+          setCoins(syncedCoins);
+          setForest(syncedForest);
+          setUnlockedSkins(syncedSkins);
+          setEquippedSkin(syncedEquipped);
+
+          await AsyncStorage.setItem('@aero_coins', syncedCoins.toString());
+          await AsyncStorage.setItem('@aero_forest', JSON.stringify(syncedForest));
+          await AsyncStorage.setItem('@aero_skins', JSON.stringify(syncedSkins));
+          await AsyncStorage.setItem('@aero_equipped_skin', syncedEquipped);
+        }
+      }
     } catch (e) {
       console.log('Nursery Error:', e);
     }
   };
 
   const purchaseSkin = async (item) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
     if (unlockedSkins.includes(item.id)) {
       // Equip it
       setEquippedSkin(item.id);
       await AsyncStorage.setItem('@aero_equipped_skin', item.id);
+      await supabase
+        .from('profiles')
+        .update({ equipped_skin: item.id })
+        .eq('id', user.id);
       return;
     }
 
@@ -82,6 +151,15 @@ export default function NurseryScreen({ navigation }) {
               await AsyncStorage.setItem('@aero_coins', newCoins.toString());
               await AsyncStorage.setItem('@aero_skins', JSON.stringify(newSkins));
               await AsyncStorage.setItem('@aero_equipped_skin', item.id);
+
+              await supabase
+                .from('profiles')
+                .update({
+                  aero_coins: newCoins,
+                  unlocked_skins: newSkins,
+                  equipped_skin: item.id
+                })
+                .eq('id', user.id);
             }
           }
         ]
